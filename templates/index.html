@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTSUGE</title>
+    <style>
+        body { background: #000; color: #fff; font-family: serif; text-align: center; padding: 20px; touch-action: manipulation; }
+        h1 { letter-spacing: 0.3em; margin-bottom: 40px; opacity: 0.8; }
+        .card { border: 1px solid #333; padding: 20px; margin: 15px auto; border-radius: 8px; max-width: 400px; }
+        .val { font-size: 1.5em; font-weight: bold; margin: 10px 0; }
+        button { background: transparent; border: 1px solid #fff; color: #fff; padding: 15px 30px; font-family: serif; margin-top: 20px; }
+        #otsuge-text { margin-top: 50px; font-size: 1.4em; line-height: 2.0; min-height: 150px; opacity: 0; transition: opacity 3s; }
+        .visible { opacity: 1 !important; }
+        input[type=range] { width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>OTSUGE</h1>
+    
+    <div class="card">
+        <p>睡眠時間 (Sleep)</p>
+        <div id="sleepDisplay" class="val">6.0 時間</div>
+        <input type="range" id="sleepSlider" min="0" max="12" step="0.5" value="6.0" oninput="updateSleep()">
+    </div>
+
+    <div class="card">
+        <p>心の揺らぎ (Pickup)</p>
+        <div id="pickupDisplay" class="val">0</div>
+        <p style="font-size:0.8em; color:#888;">机に置き、急に持ち上げてください</p>
+        <div id="pickupStatus" style="font-size:0.8em; color:#666;">待機中</div>
+    </div>
+
+    <button id="startBtn" onclick="startExperience()">世界と接続する</button>
+    <div id="otsuge-text"></div>
+
+    <script>
+        let pickupCount = 0;
+        let isMonitoring = false;
+        let lastMag = 0;
+        let smoothedMag = 0;
+        let lastPickupAt = 0;
+
+        function updateSleep() {
+            document.getElementById('sleepDisplay').innerText = document.getElementById('sleepSlider').value + " 時間";
+        }
+
+        async function startExperience() {
+            // iOS用センサー許可
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                try {
+                    const permission = await DeviceMotionEvent.requestPermission();
+                    if (permission !== 'granted') return alert("許可が必要です");
+                } catch (e) { console.error(e); }
+            }
+            document.getElementById('startBtn').style.display = 'none';
+            isMonitoring = true;
+            
+            // 加速度監視
+            window.addEventListener('devicemotion', event => {
+                if(!isMonitoring) return;
+                const acc = event.acceleration || event.accelerationIncludingGravity;
+                if(!acc) return;
+                const magnitude = Math.sqrt((acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2);
+
+                // ノイズ低減のための簡易平滑化
+                const alpha = 0.2;
+                smoothedMag = smoothedMag === 0 ? magnitude : (alpha * magnitude + (1 - alpha) * smoothedMag);
+                const delta = smoothedMag - lastMag;
+                lastMag = smoothedMag;
+
+                // 持ち上げ判定（スパイク+クールダウン）
+                const now = Date.now();
+                if (delta > 1.0 && smoothedMag > 1.2 && (now - lastPickupAt) > 1200) {
+                    lastPickupAt = now;
+                    pickupCount++;
+                    document.getElementById('pickupDisplay').innerText = pickupCount;
+                    const status = document.getElementById('pickupStatus');
+                    status.innerText = "検知！";
+                    setTimeout(() => { status.innerText = "待機中"; }, 800);
+                    
+                    // 発動条件: 5回持ち上げ or 睡眠5時間未満
+                    if (pickupCount >= 5 || document.getElementById('sleepSlider').value < 5.0) {
+                        isMonitoring = false;
+                        fetchOtsuge();
+                    }
+                }
+            });
+        }
+
+        async function fetchOtsuge() {
+            playSacredSound();
+            const s_sleep = document.getElementById('sleepSlider').value < 5.0 ? 2 : 0;
+            const s_pickup = pickupCount >= 5 ? 2 : 0;
+            
+            try {
+                const res = await fetch('/generate_otsuge', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ sleep_score: s_sleep, pickup_score: s_pickup })
+                });
+                const data = await res.json();
+                
+                const area = document.getElementById('otsuge-text');
+                area.innerText = data.otsuge;
+                area.classList.add('visible');
+
+                // 読み上げ
+                const uttr = new SpeechSynthesisUtterance(data.otsuge);
+                uttr.rate = 0.8; uttr.pitch = 0.8;
+                window.speechSynthesis.speak(uttr);
+            } catch(e) { console.error(e); }
+        }
+
+        function playSacredSound() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3.0);
+            osc.start(); osc.stop(ctx.currentTime + 3.0);
+        }
+    </script>
+</body>
+</html>
