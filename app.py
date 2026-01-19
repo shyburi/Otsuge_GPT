@@ -1,3 +1,6 @@
+#実行方法
+#.venvをアクティベートしてapp.py　を実行。
+#app.pyの起動後、./ngrok http 5000を実行
 import os
 from flask import Flask, request, jsonify, render_template
 from openai import OpenAI
