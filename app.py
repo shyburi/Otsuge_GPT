@@ -2,7 +2,7 @@
 #.venvをアクティベートしてapp.py　を実行。
 #app.pyの起動後、./ngrok http 5000を実行
 import os
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -10,11 +10,20 @@ from dotenv import load_dotenv
 load_dotenv()
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='templates', static_url_path='')
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/otsuge-sound4.wav')
+def get_sound():
+    sound_path = os.path.join(os.path.dirname(__file__), 'templates', 'otsuge-sound4.wav')
+    response = send_file(sound_path, mimetype='audio/wav')
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    return response
 
 @app.route('/generate_otsuge', methods=['POST'])
 def generate_otsuge():
