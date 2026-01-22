@@ -377,6 +377,17 @@
             color: rgba(176, 172, 168, 0.6);
         }
 
+        .score-summary {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: rgba(250, 248, 243, 0.65);
+            letter-spacing: 0.02em;
+        }
+
+        .score-summary span {
+            color: var(--primary);
+        }
+
         /* Progress dots */
         .progress-dots {
             display: flex;
@@ -565,6 +576,12 @@
                 神託を受け取る
             </button>
 
+            <div class="score-summary">
+                スコア：Sleep <span id="sleepScore">0</span> /
+                揺らぎスコア <span id="pickupScore">0</span>（回数 <span id="pickupCountView">0</span>） /
+                総合スコア <span id="totalScore">0</span>
+            </div>
+
             <!-- Otsuge Display -->
             <div id="otsugeDisplay" class="otsuge-display">
                 <div class="otsuge-divider"></div>
@@ -574,7 +591,7 @@
 
             <!-- Footer hint -->
             <div id="footerHint" class="footer-hint" style="display: none;">
-                5回持ち上げるか、睡眠が5時間未満の状態で<br />持ち上げると神託が現れます
+                睡眠5時間未満または5回持ち上げで強く発動。<br />睡眠6.5時間未満かつ3回で中くらいに発動します
             </div>
         </div>
     </main>
@@ -607,6 +624,31 @@
         let lastMag = 0;
         let smoothedMag = 0;
         let lastPickupAt = 0;
+
+        function calculateScores() {
+            let s_sleep = 0;
+            if (sleepHours < 5.0) {
+                s_sleep = 2;
+            } else if (sleepHours < 6.5) {
+                s_sleep = 1;
+            }
+
+            let s_pickup = 0;
+            if (pickupCount >= 5) {
+                s_pickup = 2;
+            } else if (pickupCount >= 3) {
+                s_pickup = 1;
+            }
+
+            return { s_sleep, s_pickup, total: s_sleep + s_pickup };
+        }
+
+        function updateScoreDisplay(s_sleep, s_pickup, total) {
+            document.getElementById('sleepScore').textContent = s_sleep;
+            document.getElementById('pickupScore').textContent = s_pickup;
+            document.getElementById('pickupCountView').textContent = pickupCount;
+            document.getElementById('totalScore').textContent = total;
+        }
 
         // Initialize dial buttons
         function initializeDial() {
@@ -668,6 +710,9 @@
             } else {
                 warningEl.style.display = 'none';
             }
+
+            const scores = calculateScores();
+            updateScoreDisplay(scores.s_sleep, scores.s_pickup, scores.total);
         }
 
         function updatePickupDisplay() {
@@ -682,6 +727,9 @@
                     dot.classList.remove('filled');
                 }
             });
+
+            const scores = calculateScores();
+            updateScoreDisplay(scores.s_sleep, scores.s_pickup, scores.total);
         }
 
         function setPickupDetected(detected) {
@@ -745,8 +793,8 @@
         }
 
         async function fetchOtsuge() {
-            const s_sleep = sleepHours < 5 ? 2 : 0;
-            const s_pickup = pickupCount >= 5 ? 2 : 0;
+            const scores = calculateScores();
+            updateScoreDisplay(scores.s_sleep, scores.s_pickup, scores.total);
             
             try {
                 // 音声を先に再生（ユーザー操作後のため制限なし）
@@ -755,7 +803,11 @@
                 const res = await fetch('/generate_otsuge', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ sleep_score: s_sleep, pickup_score: s_pickup })
+                    body: JSON.stringify({
+                        sleep_score: scores.s_sleep,
+                        pickup_score: scores.s_pickup,
+                        total_score: scores.total
+                    })
                 });
                 const data = await res.json();
                 
@@ -826,8 +878,11 @@
                     updatePickupDisplay();
                     setPickupDetected(true);
                     
-                    // 発動条件: 5回持ち上げ or 睡眠5時間未満
-                    if (pickupCount >= 5 || sleepHours < 5) {
+                    // 発動条件: 強い発動はpickup>=5または睡眠<5.0
+                    // 中くらい発動は睡眠<6.5かつpickup>=3
+                    const strongTrigger = (pickupCount >= 5) || (sleepHours < 5.0);
+                    const mildTrigger = (sleepHours < 6.5) && (pickupCount >= 3);
+                    if (strongTrigger || mildTrigger) {
                         isMonitoring = false;
                         window.removeEventListener('devicemotion', handleDeviceMotion);
                         fetchOtsuge();
