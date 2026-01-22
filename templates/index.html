@@ -2,47 +2,783 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OTSUGE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>OTSUGE - 神託</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #000; color: #fff; font-family: serif; text-align: center; padding: 20px; touch-action: manipulation; }
-        h1 { letter-spacing: 0.3em; margin-bottom: 40px; opacity: 0.8; }
-        .card { border: 1px solid #333; padding: 20px; margin: 15px auto; border-radius: 8px; max-width: 400px; }
-        .val { font-size: 1.5em; font-weight: bold; margin: 10px 0; }
-        button { background: transparent; border: 1px solid #fff; color: #fff; padding: 15px 30px; font-family: serif; margin-top: 20px; }
-        #otsuge-text { margin-top: 50px; font-size: 1.4em; line-height: 2.0; min-height: 150px; opacity: 0; transition: opacity 3s; }
-        .visible { opacity: 1 !important; }
-        input[type=range] { width: 100%; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            border-color: rgba(82, 82, 91, 0.5);
+            outline-color: rgba(171, 177, 245, 0.5);
+        }
+
+        :root {
+            --background: #0d0d12;
+            --foreground: #faf8f3;
+            --card: #161620;
+            --card-foreground: #faf8f3;
+            --card-border: rgba(212, 175, 55, 0.35);
+            --primary: #d4af37;
+            --primary-foreground: #0d0d12;
+            --secondary: #383844;
+            --secondary-foreground: #e8e4d0;
+            --muted: #3d3d47;
+            --muted-foreground: #b0aca8;
+            --accent: #c79700;
+            --accent-foreground: #0d0d12;
+            --border: #525253;
+            --input: #383844;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--foreground);
+            font-family: 'Noto Serif JP', serif;
+            font-weight: 300;
+            text-align: center;
+            padding: 0;
+            touch-action: manipulation;
+            overflow-x: hidden;
+        }
+
+        main {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2.5rem 1.25rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .background-glow {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .background-glow-circle {
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 500px;
+            height: 500px;
+            background-color: rgba(212, 175, 55, 0.08);
+            border-radius: 50%;
+            filter: blur(100px);
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 28rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding-top: 1rem;
+        }
+
+        .header-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            background-color: rgba(22, 22, 32, 0.8);
+            margin: 0 auto 0.5rem;
+        }
+
+        .header-icon svg {
+            width: 1.75rem;
+            height: 1.75rem;
+            color: var(--primary);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            letter-spacing: 0.25em;
+            font-weight: 300;
+            color: var(--foreground);
+        }
+
+        .card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.75rem;
+            border: 1px solid var(--card-border);
+            background-color: rgba(22, 22, 32, 0.8);
+            padding: 1.5rem;
+            backdrop-filter: blur(4px);
+            transition: all 0.5s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(212, 175, 55, 0.3);
+            background-color: rgba(22, 22, 32, 1);
+        }
+
+
+        .card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+
+        .card-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-header-left p:first-child {
+            font-size: 0.875rem;
+            color: rgba(250, 248, 243, 0.8);
+            letter-spacing: 0.05em;
+        }
+
+        .card-header-left p:last-child {
+            font-size: 0.75rem;
+            color: rgba(250, 248, 243, 0.5);
+            margin-top: 0.125rem;
+        }
+
+        .card-header-right {
+            text-align: right;
+        }
+
+        .card-header-right .value {
+            font-size: 1.875rem;
+            font-weight: 300;
+            letter-spacing: 0.05em;
+            color: var(--primary);
+        }
+
+        .card-header-right .unit {
+            font-size: 1rem;
+            color: rgba(250, 248, 243, 0.6);
+            margin-left: 0.25rem;
+        }
+
+        /* Sleep Dial */
+        .sleep-dial {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 15rem;
+            margin: 0 auto;
+        }
+
+        .dial-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .dial-outer {
+            position: absolute;
+            inset: 0;
+            border: 1px solid rgba(82, 82, 91, 0.4);
+            border-radius: 50%;
+        }
+
+        .dial-track {
+            position: absolute;
+            inset: 0;
+        }
+
+        .dial-button {
+            position: absolute;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            pointer-events: auto;
+        }
+
+        .dial-button.secondary {
+            background-color: var(--secondary);
+            color: rgba(250, 248, 243, 0.7);
+        }
+
+        .dial-button.secondary:hover {
+            background-color: rgba(56, 56, 68, 0.8);
+            color: var(--foreground);
+        }
+
+        .dial-button.secondary:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        .dial-button.primary {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 0 1.5rem rgba(212, 175, 55, 0.3);
+        }
+
+        .dial-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .dial-center-value {
+            font-size: 2.25rem;
+            font-weight: 300;
+            color: var(--primary);
+        }
+
+        .dial-center-label {
+            font-size: 0.75rem;
+            color: rgba(250, 248, 243, 0.5);
+            margin-top: 0.25rem;
+        }
+
+        .sleep-warning {
+            font-size: 0.75rem;
+            color: rgba(212, 175, 55, 0.8);
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        /* Pickup Detector */
+        .pickup-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .pickup-counter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pickup-circle {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 5rem;
+            height: 5rem;
+            border-radius: 50%;
+            border: 2px solid var(--card-border);
+            background-color: rgba(56, 56, 68, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .pickup-circle.detected {
+            border-color: rgba(212, 175, 55, 0.6);
+            background-color: rgba(212, 175, 55, 0.1);
+        }
+
+        .pickup-ripple {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        .pickup-ripple-2 {
+            animation-delay: 0.2s;
+        }
+
+        @keyframes ping {
+            75%, 100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        .pickup-count {
+            font-size: 1.875rem;
+            font-weight: 300;
+            transition: color 0.3s ease;
+            z-index: 2;
+        }
+
+        .pickup-circle.detected .pickup-count {
+            color: var(--primary);
+        }
+
+        .pickup-circle:not(.detected) .pickup-count {
+            color: var(--foreground);
+        }
+
+        .pickup-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .pickup-status-icon {
+            width: 1rem;
+            height: 1rem;
+            color: rgba(212, 175, 55, 0.7);
+            transition: color 0.3s ease;
+        }
+
+        .pickup-circle:not(.detected) .pickup-status-icon {
+            color: rgba(176, 172, 168, 0.5);
+        }
+
+        .pickup-status-text {
+            font-size: 0.875rem;
+            color: rgba(250, 248, 243, 0.75);
+            transition: color 0.3s ease;
+        }
+
+        .pickup-circle.detected .pickup-status-text {
+            color: var(--primary);
+        }
+
+        .pickup-hint {
+            text-align: center;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            color: rgba(176, 172, 168, 0.6);
+        }
+
+        /* Progress dots */
+        .progress-dots {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            padding-top: 0.5rem;
+        }
+
+        .dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+            background-color: rgba(250, 248, 243, 0.15);
+        }
+
+        .dot.filled {
+            background-color: var(--primary);
+        }
+
+        /* Start Button */
+        .start-button {
+            width: 100%;
+            padding: 1.5rem;
+            font-size: 1rem;
+            letter-spacing: 0.05em;
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            border-radius: 0.375rem;
+            font-family: 'Noto Serif JP', serif;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+
+        .start-button:hover {
+            background-color: rgba(212, 175, 55, 0.9);
+        }
+
+        /* Otsuge Display */
+        .otsuge-display {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 1.5rem 0;
+            transition: all 3s ease;
+            opacity: 0;
+            transform: translateY(1rem);
+        }
+
+        .otsuge-display.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .otsuge-divider {
+            width: 4rem;
+            height: 1px;
+            background-color: rgba(212, 175, 55, 0.4);
+            margin: 0 auto;
+        }
+
+        .otsuge-text {
+            font-size: 1rem;
+            line-height: 2.2;
+            color: rgba(250, 248, 243, 0.9);
+            padding: 0 0.5rem;
+            word-break: break-word;
+        }
+
+        /* Footer hint */
+        .footer-hint {
+            font-size: 0.75rem;
+            color: rgba(250, 248, 243, 0.4);
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 640px) {
+            main {
+                padding: 2rem 1rem;
+            }
+
+            .content {
+                gap: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>OTSUGE</h1>
-    
-    <div class="card">
-        <p>睡眠時間 (Sleep)</p>
-        <div id="sleepDisplay" class="val">6.0 時間</div>
-        <input type="range" id="sleepSlider" min="0" max="12" step="0.5" value="6.0" oninput="updateSleep()">
-    </div>
+    <main>
+        <div class="background-glow">
+            <div class="background-glow-circle"></div>
+        </div>
 
-    <div class="card">
-        <p>心の揺らぎ (Pickup)</p>
-        <div id="pickupDisplay" class="val">0</div>
-        <p style="font-size:0.8em; color:#888;">机に置き、急に持ち上げてください</p>
-        <div id="pickupStatus" style="font-size:0.8em; color:#666;">待機中</div>
-    </div>
+        <div class="content">
+            <!-- Header -->
+            <header>
+                <div class="header-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
+                    </svg>
+                </div>
+                <h1>OTSUGE</h1>
+            </header>
 
-    <button id="startBtn" onclick="startExperience()">世界と接続する</button>
-    <div id="otsuge-text"></div>
+            <!-- Sleep Dial Card -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <p>睡眠時間</p>
+                            <p>Sleep Duration</p>
+                        </div>
+                    </div>
+
+                    <!-- Circular Dial -->
+                    <div class="sleep-dial">
+                        <div class="dial-container">
+                            <div class="dial-outer"></div>
+                            <svg class="dial-track" viewBox="0 0 100 100">
+                                <circle id="dialTrack" cx="50" cy="50" r="42" fill="none" stroke="rgba(82, 82, 91, 0.3)" stroke-width="1" />
+                                <circle id="progressArc" cx="50" cy="50" r="42" fill="none" stroke="rgba(212, 175, 55, 0.6)" stroke-width="2" stroke-linecap="round" stroke-dasharray="0 264" />
+                            </svg>
+
+                            <!-- Sleep option buttons -->
+                            <div id="dialButtons"></div>
+
+                            <!-- Center display -->
+                            <div class="dial-center">
+                                <div class="dial-center-value" id="dialCenterValue">6</div>
+                                <div class="dial-center-label">hours</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sleepWarning" class="sleep-warning" style="display: none;">
+                        睡眠不足を検知 - 1回の揺らぎで神託が現れます
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pickup Card -->
+            <div class="card">
+                <div class="card-content">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <p>心の揺らぎ</p>
+                            <p>Mind Fluctuation</p>
+                        </div>
+                        <div class="card-header-right" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div id="statusIndicator" style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background-color: rgba(250, 248, 243, 0.2); transition: background-color 0.3s;"></div>
+                            <span style="font-size: 0.75rem; color: rgba(250, 248, 243, 0.6);" id="connectionStatus">未接続</span>
+                        </div>
+                    </div>
+
+                    <div class="pickup-container">
+                        <div class="pickup-counter">
+                            <div class="pickup-circle" id="pickupCircle">
+                                <div class="pickup-count" id="pickupCount">0</div>
+                            </div>
+                        </div>
+
+                        <div class="progress-dots" id="progressDots">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <button class="start-button" id="startBtn" onclick="startExperience()">
+                神託を受け取る
+            </button>
+
+            <!-- Otsuge Display -->
+            <div id="otsugeDisplay" class="otsuge-display">
+                <div class="otsuge-divider"></div>
+                <p class="otsuge-text" id="otsuge-text"></p>
+                <div class="otsuge-divider"></div>
+            </div>
+
+            <!-- Footer hint -->
+            <div id="footerHint" class="footer-hint" style="display: none;">
+                5回持ち上げるか、睡眠が5時間未満の状態で<br />持ち上げると神託が現れます
+            </div>
+        </div>
+    </main>
 
     <script>
+        const SLEEP_OPTIONS = [
+            { value: 0, label: "0h" },
+            { value: 2, label: "2h" },
+            { value: 4, label: "4h" },
+            { value: 5, label: "5h" },
+            { value: 6, label: "6h" },
+            { value: 7, label: "7h" },
+            { value: 8, label: "8h" },
+            { value: 10, label: "10h" },
+            { value: 12, label: "12h" },
+        ];
+
+        const DIAL_RADIUS = 42;
+        const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS;
+        const DIAL_START_ANGLE_FROM_TOP = 240; // 0h at 8 o'clock, from top clockwise, rotated 90deg right
+        const DIAL_ARC_SPAN = 240; // sweep to 12h at 4 o'clock
+        const DIAL_ARC_LENGTH = DIAL_CIRCUMFERENCE * (DIAL_ARC_SPAN / 360);
+        const DIAL_START_OFFSET = ((DIAL_START_ANGLE_FROM_TOP - 90) / 360) * DIAL_CIRCUMFERENCE;
+
+        let sleepHours = 6;
         let pickupCount = 0;
+        let pickupStatus = "idle"; // "idle" or "detected"
         let isMonitoring = false;
+        let isStarted = false;
         let lastMag = 0;
         let smoothedMag = 0;
         let lastPickupAt = 0;
 
-        function updateSleep() {
-            document.getElementById('sleepDisplay').innerText = document.getElementById('sleepSlider').value + " 時間";
+        // Initialize dial buttons
+        function initializeDial() {
+            const container = document.getElementById('dialButtons');
+            const track = document.getElementById('dialTrack');
+            const progressArc = document.getElementById('progressArc');
+            const arcDashArray = `${DIAL_ARC_LENGTH} ${DIAL_CIRCUMFERENCE - DIAL_ARC_LENGTH}`;
+            track.style.strokeDasharray = arcDashArray;
+            track.style.strokeDashoffset = `${-DIAL_START_OFFSET}`;
+            progressArc.style.strokeDasharray = `0 ${DIAL_CIRCUMFERENCE}`;
+            progressArc.style.strokeDashoffset = `${-DIAL_START_OFFSET}`;
+            
+            SLEEP_OPTIONS.forEach((option, index) => {
+                const ratio = index / (SLEEP_OPTIONS.length - 1);
+                const angleFromTop = DIAL_START_ANGLE_FROM_TOP + ratio * DIAL_ARC_SPAN;
+                const mathAngle = angleFromTop - 90;
+                const radian = (mathAngle * Math.PI) / 180;
+                const x = 50 + DIAL_RADIUS * Math.cos(radian);
+                const y = 50 + DIAL_RADIUS * Math.sin(radian);
+                
+                const button = document.createElement('button');
+                button.className = `dial-button ${sleepHours === option.value ? 'primary' : 'secondary'}`;
+                button.textContent = option.label;
+                button.style.left = `${x}%`;
+                button.style.top = `${y}%`;
+                button.onclick = () => setSleepHours(option.value);
+                
+                container.appendChild(button);
+            });
+        }
+
+        function setSleepHours(value) {
+            sleepHours = value;
+            const selectedIndex = SLEEP_OPTIONS.findIndex(opt => opt.value === value);
+            const ratio = selectedIndex / (SLEEP_OPTIONS.length - 1);
+            const progress = Math.max(0, Math.min(DIAL_ARC_LENGTH, ratio * DIAL_ARC_LENGTH));
+            
+            // Update arc
+            document.getElementById('progressArc').style.strokeDasharray = `${progress} ${DIAL_CIRCUMFERENCE - progress}`;
+            
+            // Update display
+            document.getElementById('dialCenterValue').textContent = value;
+            
+            // Update button states
+            document.querySelectorAll('.dial-button').forEach((btn, idx) => {
+                if (idx === selectedIndex) {
+                    btn.classList.remove('secondary');
+                    btn.classList.add('primary');
+                } else {
+                    btn.classList.remove('primary');
+                    btn.classList.add('secondary');
+                }
+            });
+            
+            // Show warning if sleep < 5
+            const warningEl = document.getElementById('sleepWarning');
+            if (value < 5) {
+                warningEl.style.display = 'block';
+            } else {
+                warningEl.style.display = 'none';
+            }
+        }
+
+        function updatePickupDisplay() {
+            const countEl = document.getElementById('pickupCount');
+            countEl.textContent = pickupCount;
+            
+            // Update dots
+            document.querySelectorAll('.dot').forEach((dot, idx) => {
+                if (idx < pickupCount) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            });
+        }
+
+        function setPickupDetected(detected) {
+            const circle = document.getElementById('pickupCircle');
+            if (detected) {
+                pickupStatus = "detected";
+                circle.classList.add('detected');
+                
+                // Add ripples
+                const ripple1 = document.createElement('div');
+                ripple1.className = 'pickup-ripple';
+                circle.appendChild(ripple1);
+                
+                const ripple2 = document.createElement('div');
+                ripple2.className = 'pickup-ripple pickup-ripple-2';
+                circle.appendChild(ripple2);
+                
+                setTimeout(() => {
+                    circle.classList.remove('detected');
+                    circle.querySelectorAll('.pickup-ripple').forEach(r => r.remove());
+                    pickupStatus = "idle";
+                }, 800);
+            }
+        }
+
+        function playSacredSound() {
+            console.log('playSacredSound called');
+            try {
+                // Create audio element with proper attributes
+                const audio = document.createElement('audio');
+                audio.src = '/otsuge-sound4.wav?t=' + Date.now(); // Add cache buster
+                audio.type = 'audio/wav';
+                audio.volume = 1.0;
+                audio.crossOrigin = 'anonymous';
+                
+                // Append to body temporarily
+                document.body.appendChild(audio);
+                
+                // Try to play
+                const playPromise = audio.play();
+                console.log('Play promise:', playPromise);
+                
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            console.log('Audio playing successfully');
+                        })
+                        .catch(err => {
+                            console.error('Play error:', err.name, err.message);
+                        });
+                }
+                
+                // Clean up after playing
+                audio.addEventListener('ended', () => {
+                    document.body.removeChild(audio);
+                });
+                
+            } catch (err) {
+                console.error('Audio error:', err);
+            }
+        }
+
+        async function fetchOtsuge() {
+            const s_sleep = sleepHours < 5 ? 2 : 0;
+            const s_pickup = pickupCount >= 5 ? 2 : 0;
+            
+            try {
+                // 音声を先に再生（ユーザー操作後のため制限なし）
+                playSacredSound();
+                
+                const res = await fetch('/generate_otsuge', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ sleep_score: s_sleep, pickup_score: s_pickup })
+                });
+                const data = await res.json();
+                
+                const display = document.getElementById('otsugeDisplay');
+                const textEl = document.getElementById('otsuge-text');
+                textEl.textContent = data.otsuge;
+                
+                // Trigger fade-in
+                setTimeout(() => {
+                    display.classList.add('visible');
+                }, 100);
+
+                // 読み上げ
+                if ("speechSynthesis" in window) {
+                    const uttr = new SpeechSynthesisUtterance(data.otsuge);
+                    uttr.rate = 0.8;
+                    uttr.pitch = 0.8;
+                    uttr.lang = "ja-JP";
+                    window.speechSynthesis.speak(uttr);
+                }
+            } catch(e) {
+                console.error(e);
+            }
         }
 
         async function startExperience() {
@@ -50,20 +786,33 @@
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 try {
                     const permission = await DeviceMotionEvent.requestPermission();
-                    if (permission !== 'granted') return alert("許可が必要です");
-                } catch (e) { console.error(e); }
+                    if (permission !== 'granted') {
+                        alert("センサーの許可が必要です");
+                        return;
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
             }
-            document.getElementById('startBtn').style.display = 'none';
+
+            isStarted = true;
             isMonitoring = true;
             
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('footerHint').style.display = 'block';
+            document.getElementById('statusIndicator').style.backgroundColor = 'rgba(212, 175, 55, 0.7)';
+            document.getElementById('connectionStatus').textContent = '接続';
+            
             // 加速度監視
-            window.addEventListener('devicemotion', event => {
-                if(!isMonitoring) return;
+            const handleDeviceMotion = (event) => {
+                if (!isMonitoring) return;
+                
                 const acc = event.acceleration || event.accelerationIncludingGravity;
-                if(!acc) return;
+                if (!acc) return;
+                
                 const magnitude = Math.sqrt((acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2);
 
-                // ノイズ低減のための簡易平滑化
+                // ノイズ低減のための平滑化
                 const alpha = 0.2;
                 smoothedMag = smoothedMag === 0 ? magnitude : (alpha * magnitude + (1 - alpha) * smoothedMag);
                 const delta = smoothedMag - lastMag;
@@ -74,54 +823,27 @@
                 if (delta > 1.0 && smoothedMag > 1.2 && (now - lastPickupAt) > 1200) {
                     lastPickupAt = now;
                     pickupCount++;
-                    document.getElementById('pickupDisplay').innerText = pickupCount;
-                    const status = document.getElementById('pickupStatus');
-                    status.innerText = "検知！";
-                    setTimeout(() => { status.innerText = "待機中"; }, 800);
+                    updatePickupDisplay();
+                    setPickupDetected(true);
                     
                     // 発動条件: 5回持ち上げ or 睡眠5時間未満
-                    if (pickupCount >= 5 || document.getElementById('sleepSlider').value < 5.0) {
+                    if (pickupCount >= 5 || sleepHours < 5) {
                         isMonitoring = false;
+                        window.removeEventListener('devicemotion', handleDeviceMotion);
                         fetchOtsuge();
                     }
                 }
-            });
-        }
-
-        async function fetchOtsuge() {
-            playSacredSound();
-            const s_sleep = document.getElementById('sleepSlider').value < 5.0 ? 2 : 0;
-            const s_pickup = pickupCount >= 5 ? 2 : 0;
+            };
             
-            try {
-                const res = await fetch('/generate_otsuge', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ sleep_score: s_sleep, pickup_score: s_pickup })
-                });
-                const data = await res.json();
-                
-                const area = document.getElementById('otsuge-text');
-                area.innerText = data.otsuge;
-                area.classList.add('visible');
-
-                // 読み上げ
-                const uttr = new SpeechSynthesisUtterance(data.otsuge);
-                uttr.rate = 0.8; uttr.pitch = 0.8;
-                window.speechSynthesis.speak(uttr);
-            } catch(e) { console.error(e); }
+            window.addEventListener('devicemotion', handleDeviceMotion);
         }
 
-        function playSacredSound() {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(880, ctx.currentTime);
-            gain.gain.setValueAtTime(0.05, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3.0);
-            osc.start(); osc.stop(ctx.currentTime + 3.0);
-        }
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeDial();
+            setSleepHours(6);
+            updatePickupDisplay();
+        });
     </script>
 </body>
 </html>
